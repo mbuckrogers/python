@@ -5,13 +5,31 @@ import os
 import glob
 import math
 
+fac = 3
 
-def average(keypoints):
-	sum = 0.0
-	for kp in keypoints:
-		sum += kp.size
+class DiceEye:
+	def __init__(self):
+		self.x = 0
+		self.y = 0
+		self.diameter = 0
 	
-	return sum / len(keypoints)
+	def __init__(self, x, y, diamter):
+		self.x = int(x)
+		self.y = int(y)
+		self.diameter = int(diamter)
+	
+	
+	def toString(self):
+		return "x=" + str(self.x) + " y=" + str(self.y) + " d=" + str(self.diameter)
+
+	def distance(self, other):
+		return math.sqrt(math.pow(self.x - other.x, 2) + math.pow(self.y - other.y, 2))
+		
+def average(diceeyes):
+	sum = 0
+	for diceye in diceeyes:
+		sum += diceye.diameter
+	return sum / len(diceeyes)
 
 def unify(neighbourMap):
 	for key in neighbourMap.iterkeys(): 
@@ -32,6 +50,23 @@ def unify(neighbourMap):
 def distance(p1, p2):
 	return math.sqrt(math.pow(p1[0] - p2[0], 2) + math.pow(p1[1] - p2[1], 2))
 	
+
+def isInTheHodd(can, hood, distance):
+	tmp = de for de in hood if can.distance(de) <= distance ]
+	return len(tmp) > 0
+	
+def findMyNeigbourhood(me, potentialNeighbours, distance):
+		return set([pn for pn in potentialNeighbours if me.distance(pn) <= distance])
+	
+def collectN(res, pot, distance):
+	r = []
+	if len(pot) > 0:
+		can = pot.pop()
+		r = collectN(res, pot, distance)
+	res.union(r)
+	return res
+
+
 def detectAndMark(img):
 	kernel = np.ones((5,5),np.float32)/25
 	img = cv2.filter2D(img,-1,kernel)
@@ -70,21 +105,33 @@ def detectAndMark(img):
 	detector = cv2.SimpleBlobDetector(params)
 	# Detect blobs.
 	keypoints = detector.detect(img)
+	diceeyes = map(lambda kp: DiceEye(kp.pt[0], kp.pt[1], kp.size), keypoints)
+	avg = average(diceeyes)
+	
+	
+	diceeyes = [de for de in diceeyes if de.diameter < 1.5 * avg ]
 
-	avg = average(keypoints)
+	
+	print collectN(set(), diceeyes, fac * avg)
+	
 
+	
 	keypoints = [kp for kp in keypoints if kp.size < 1.5 * avg ]
 
 	myNeighbours = {}
 	nall = set
 
-	fac = 3
+	
 
 	for kp in keypoints:
 		neighbours = filter(lambda kpOther:  distance(kpOther.pt, kp.pt) <= fac *avg, keypoints)
 		assert len(neighbours) > 0
 		myNeighbours[kp] = set(neighbours)
 		print myNeighbours[kp]
+		
+		de = DiceEye(kp.pt[0], kp.pt[1], kp.size)
+		print de.toString()
+		
 		#nall.add(myNeighbours[kp])
 
 	res = unify(myNeighbours)
@@ -141,7 +188,7 @@ def toggle_images(event):
 	plotter.set_data(localImg)
 	plt.draw()
 	
-img = cv2.imread("C:\dev\yatzee_images\IMAG0171.jpg", 1)
+img = cv2.imread("E:\git\python\python-master\images\IMAG0171.jpg", 1)
 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 img = detectAndMark(img)
 	
@@ -153,7 +200,7 @@ counter = 0
 plt.connect('key_press_event', toggle_images)
 
 
-directory = os.path.join("C:\dev\yatzee_images", "*.jpg")
+directory = os.path.join("E:\git\python\python-master\images", "*.jpg")
 files = glob.glob(directory)	
 
 plotter = plt.imshow(img)
