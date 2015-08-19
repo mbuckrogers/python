@@ -4,7 +4,7 @@ import numpy as np
 import os
 import glob
 import math
-import networkx as nx
+
 
 def average(keypoints):
 	sum = 0.0
